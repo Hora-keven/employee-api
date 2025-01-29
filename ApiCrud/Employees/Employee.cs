@@ -15,8 +15,11 @@ namespace ApiCrud.Employees
             Id = Guid.NewGuid();
             IsActive = true;
         }
-        public void updateName(string name){
+        public void UpdateName(string name){
             Name = name;
+        }
+        public void Desactive(){
+            IsActive = false;
         }
     }
 }
