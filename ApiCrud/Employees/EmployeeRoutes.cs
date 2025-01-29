@@ -12,28 +12,38 @@ namespace ApiCrud.Employees
         public static void AddEmployeeRoutes(this WebApplication app){
             var route = app.MapGroup("employee");
 
-            route.MapPost("",async (EmployeeRequest req, AppDbContext context)=>{
+            route.MapPost("",async (EmployeeRequest req, AppDbContext context, CancellationToken ct)=>{
                 var newEmployee = new Employee(req.Name);
-                var existEmployee = await context.Employees.AnyAsync(employee=>employee.Name == req.Name);
+                var existEmployee = await context.Employees.AnyAsync(employee=>employee.Name == req.Name,ct);
                 if (existEmployee) return Results.Conflict("Employee already exist");
-                await context.Employees.AddAsync(newEmployee);
-                await context.SaveChangesAsync();
-                return Results.Created();
+                await context.Employees.AddAsync(newEmployee,ct);
+                await context.SaveChangesAsync(ct);
+                return Results.Ok(new EmployeeDto(newEmployee.Id, newEmployee.Name));
             });
 
-            route.MapGet("", async(AppDbContext context)=>{
-                var employees = await context.Employees.Where(employee=>employee.IsActive).ToListAsync();
+            route.MapGet("", async(AppDbContext context, CancellationToken ct)=>{
+                var employees = await context.Employees.Where(employee=>employee.IsActive)
+                .Select(employee=> new EmployeeDto(employee.Id, employee.Name))
+                .ToListAsync(ct);
                 return Results.Ok(employees);
             });
 
-            route.MapPut("{id:guid}", async(Guid id, AppDbContext context, UpdateEmployeeRequest req)=>{
-                var employee = await context.Employees.SingleOrDefaultAsync(employee=>employee.Id == id);
+            route.MapPut("{id:guid}", async(Guid id, AppDbContext context, UpdateEmployeeRequest req, CancellationToken ct)=>{
+                var employee = await context.Employees.SingleOrDefaultAsync(employee=>employee.Id == id,ct);
                 if(employee == null) return Results.NotFound();
-                employee.updateName(req.Name);
+                employee.UpdateName(req.Name);
 
-                await context.SaveChangesAsync();
-                return Results.Ok(employee);
+                await context.SaveChangesAsync(ct);
+                return Results.Ok(new EmployeeDto(employee.Id, employee.Name));
 
+            });
+
+            route.MapDelete("{id:guid}", async(Guid id, AppDbContext context, CancellationToken ct)=>{
+                var employee = await context.Employees.SingleOrDefaultAsync(employee=>employee.Id == id,ct);
+                if(employee == null) return Results.NotFound();
+                employee.Desactive();
+                await context.SaveChangesAsync(ct);
+                return Results.NoContent();
             });
         }
     }
