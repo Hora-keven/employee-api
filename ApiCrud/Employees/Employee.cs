@@ -15,5 +15,8 @@ namespace ApiCrud.Employees
             Id = Guid.NewGuid();
             IsActive = true;
         }
+        public void updateName(string name){
+            Name = name;
+        }
     }
 }
